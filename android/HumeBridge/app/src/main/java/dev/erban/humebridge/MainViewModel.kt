@@ -127,7 +127,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun scan() {
         viewModelScope.launch {
-            setBusy("Scanning for Hume/J2208 bands...")
+            setBusy("Scanning for J2208-family bands...")
             runCatching { repository.scan() }
                 .onSuccess { bands ->
                     mutableState.value = mutableState.value.copy(
@@ -249,3 +249,4 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 }
+

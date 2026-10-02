@@ -14,5 +14,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "HumeBridge"
+rootProject.name = "HealthBandBPSync"
 include(":app")
+

@@ -34,10 +34,11 @@ data class HrvHistoryEntity(
     val lastFetchedAtEpochMillis: Long,
 ) {
     companion object {
-        const val BP_PROVENANCE = "Hume/J2208-derived BP estimate from stored 0x56 HRV history; not a cuff measurement"
+        const val BP_PROVENANCE = "J2208-family band-derived BP estimate from stored 0x56 HRV history; not a cuff measurement"
         const val HEALTH_CONNECT_PENDING = "pending"
         const val HEALTH_CONNECT_WRITTEN = "written"
         const val HEALTH_CONNECT_FAILED = "failed"
         const val HEALTH_CONNECT_SKIPPED = "skipped"
     }
 }
+

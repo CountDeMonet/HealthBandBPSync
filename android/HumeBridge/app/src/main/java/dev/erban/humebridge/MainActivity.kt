@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
 
             MaterialTheme {
                 Surface(Modifier.fillMaxSize()) {
-                    HumeBridgeScreen(
+                    BandBpSyncScreen(
                         state = state,
                         hasPermissions = viewModel.hasBlePermissions(),
                         onRequestPermissions = { permissionLauncher.launch(requiredBlePermissions()) },
@@ -75,7 +75,7 @@ class MainActivity : ComponentActivity() {
                         onScan = viewModel::scan,
                         onSelect = viewModel::selectBand,
                         onSync = viewModel::sync,
-                        onExport = { csvLauncher.launch("humebridge-hrv-bp.csv") },
+                        onExport = { csvLauncher.launch("band-bp-sync-hrv-bp.csv") },
                         onWriteHealthConnect = viewModel::writeBpToHealthConnect,
                         onSyncAndWriteHealthConnect = viewModel::syncAndWriteBpToHealthConnect,
                     )
@@ -98,7 +98,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun HumeBridgeScreen(
+private fun BandBpSyncScreen(
     state: MainUiState,
     hasPermissions: Boolean,
     onRequestPermissions: () -> Unit,
@@ -169,9 +169,9 @@ private fun HumeBridgeScreen(
 @Composable
 private fun Header() {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("HumeBridge", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold)
+        Text("Band BP Sync", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold)
         Text(
-            "Direct Hume Band 0x56 BP estimates, stored locally and manually written to Health Connect.",
+            "Direct J2208-family 0x56 BP estimates, stored locally and manually written to Health Connect.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -411,3 +411,4 @@ private fun healthConnectStatusText(state: MainUiState): String =
         HealthConnectAvailability.UpdateRequired -> "provider update required"
         HealthConnectAvailability.Unavailable -> "unavailable"
     }
+

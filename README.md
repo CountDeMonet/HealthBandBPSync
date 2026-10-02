@@ -1,16 +1,16 @@
 # HealthBandBPSync
 
-HealthBandBPSync is a reverse-engineering and validation project for reading historical blood-pressure estimates from a Hume Band V2 / J2208-family fitness band and writing those estimates to Android Health Connect.
+HealthBandBPSync is a reference hardware bridge for reading historical blood-pressure estimates from a J2208-family BLE fitness band and writing those estimates to Android Health Connect.
 
-The current Android app is named **HumeBridge**. It is intentionally narrow: it manually syncs stored `0x56` history records from the band over BLE, keeps the raw bytes and decoded fields in a local Room database, exports diagnostic CSV, and writes valid systolic/diastolic estimates to Health Connect as `BloodPressureRecord` entries.
+The Android app is currently presented as **Band BP Sync**. It manually syncs stored `0x56` history records from the band over BLE, keeps the raw bytes and decoded fields in a local Room database, exports diagnostic CSV, and writes valid systolic/diastolic estimates to Health Connect as `BloodPressureRecord` entries.
 
-This is not a medical device, not a cuff replacement, and not medical advice. The values are band-derived estimates from an optical wearable stream.
+This is not a medical device, not a cuff replacement, and not medical advice. The values are optical wearable estimates from a consumer band protocol.
 
-## Current Status
+## Scope
 
 Working in the current build:
 
-- Scan for and select a Hume/J2208 BLE band.
+- Scan for and select a compatible J2208-family BLE band.
 - Manually sync historical `0x56` HRV/BP records from the band.
 - Preserve every raw 15-byte `0x56` record in Room.
 - Decode timestamp, HRV, vascular aging, heart rate, stress, systolic BP, and diastolic BP.
@@ -25,14 +25,17 @@ Not implemented by design:
 - Background sync / WorkManager.
 - Health Connect writes for heart rate, HRV, stress, vascular aging, sleep, or other metrics.
 - Live `0x28` measurement handling.
-- Reproduction of Hume's hourly aggregation or chart display logic.
+- Reproduction of any vendor app's hourly aggregation or chart display logic.
 - Any cloud service.
 
-## Validation Notes
+## Compatibility And Validation
 
-The project has validated that the historical `0x56` records contain the BP-estimate stream used by the Hume app:
+This project targets the J2208-family BLE protocol seen on at least one commercially sold band. It is not affiliated with, endorsed by, or supported by any device vendor.
 
-- The decoded `bpSystolic` and `bpDiastolic` fields match the apparent Hume app blood-pressure history behavior.
+The current validation status:
+
+- Historical `0x56` records contain a BP-estimate stream with separate systolic and diastolic fields.
+- Decoded systolic/diastolic values match the apparent blood-pressure history behavior of the companion app used during testing.
 - Health Connect writes show the expected timestamps and values.
 - Repeated sync/write cycles are designed to be idempotent.
 
@@ -47,6 +50,8 @@ Further validation is still useful:
 The implemented protocol details live in:
 
 `android/HumeBridge/app/src/main/java/dev/erban/humebridge/protocol/J2208Protocol.kt`
+
+The Android project path and Kotlin package still contain the earlier internal codename. Renaming those would require an app/package migration and is intentionally deferred to avoid breaking installed test builds or local Health Connect dedupe state.
 
 BLE UUIDs:
 
@@ -98,15 +103,15 @@ Valid BP rows are written as `BloodPressureRecord` values:
 - The decoded device timestamp is preserved.
 - The local zone offset at decode time is preserved.
 - Body position and measurement location are set to Health Connect's unknown/default values.
-- Metadata marks the device as a fitness band from `Hume/J2208`.
+- Metadata marks the device as a J2208-compatible fitness band.
 
-Each row gets a stable Health Connect client record ID:
+Each row gets a stable Health Connect client record ID. The prefix currently remains the original project prefix for compatibility with records already written during validation:
 
 ```text
 hume-j2208-bp:{bandAddress}:{deviceTimeLocal}:{rawSha256}
 ```
 
-This makes repeated writes of the same retained band history idempotent.
+Do not change that prefix without also planning a migration, or previously written records may be inserted again under new client IDs.
 
 ## Privacy And Repository Hygiene
 
@@ -132,6 +137,12 @@ Project path:
 
 ```text
 android/HumeBridge
+```
+
+Visible app name:
+
+```text
+Band BP Sync
 ```
 
 Package:
@@ -171,10 +182,10 @@ android/HumeBridge/app/build/outputs/apk/debug/app-debug.apk
 ## Manual Use Flow
 
 1. Install the debug APK on an Android phone with Health Connect available.
-2. Open HumeBridge.
+2. Open Band BP Sync.
 3. Grant BLE permissions.
 4. Scan for the band.
-5. Select the Hume Band V2 / J2208 device.
+5. Select the compatible J2208-family device.
 6. Tap `Sync 0x56` to pull stored records.
 7. Export CSV if you want to inspect the raw/decoded local data.
 8. Grant Health Connect BP permission.

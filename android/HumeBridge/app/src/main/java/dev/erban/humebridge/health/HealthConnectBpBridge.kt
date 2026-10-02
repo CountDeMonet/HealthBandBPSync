@@ -88,8 +88,8 @@ fun HrvHistoryEntity.stableHealthConnectClientRecordId(): String =
 private fun HrvHistoryEntity.toHealthConnectRecord(clientRecordId: String): BloodPressureRecord {
     val device = Device(
         type = Device.TYPE_FITNESS_BAND,
-        manufacturer = "Hume/J2208",
-        model = "J2208-family band",
+        manufacturer = "J2208-compatible",
+        model = "J2208-family reference band",
     )
     return BloodPressureRecord(
         time = Instant.parse(instantUtc),
@@ -105,3 +105,4 @@ private fun HrvHistoryEntity.toHealthConnectRecord(clientRecordId: String): Bloo
         measurementLocation = BloodPressureRecord.MEASUREMENT_LOCATION_UNKNOWN,
     )
 }
+
