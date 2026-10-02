@@ -21,5 +21,24 @@ venv/
 .idea/
 .DS_Store
 Thumbs.db
-/android/HumeBridge/.gradle
+
+# Android / Gradle generated files
+/android/HumeBridge/build/
+/android/HumeBridge/**/build/
+/android/HumeBridge/local.properties
+/android/HumeBridge/.kotlin/
+/android/HumeBridge/.gradle/
 /android/HumeBridge/app/build
+
+# Android Studio metadata that can leak local paths
+*.iml
+
+# Signing / secrets
+*.jks
+*.keystore
+key.properties
+
+# Logs / temporary diagnostics
+*.log
+*.tmp
+
