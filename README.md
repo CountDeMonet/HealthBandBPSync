@@ -19,6 +19,7 @@ Working in the current build:
 - Track Health Connect write status and stable client record IDs per local row.
 - Avoid duplicate Health Connect writes using deterministic client record IDs.
 - Keep sync manual and close the BLE connection after each sync.
+- Persist an app mode setting for Companion vs Standalone workflows.
 
 Not implemented by design:
 
@@ -131,6 +132,14 @@ The `.gitignore` is set up for these categories, but if a sensitive or generated
 git rm --cached path/to/file
 ```
 
+## App Modes
+
+Band BP Sync now has a persisted mode setting that establishes two future operating styles without changing sync behavior yet:
+
+- **Companion mode** is the default. It assumes the vendor app remains installed and active, keeps BLE contact brief, and focuses on manually filling Health Connect gaps such as BP.
+- **Standalone mode** is groundwork for a future primary-sync experience with richer local visualizations and carefully validated opt-in metric expansion.
+
+In the current build, both modes still use the same manual `0x56` sync and BP-only Health Connect write path. No background sync, live measurements, or additional Health Connect metrics are enabled by switching modes.
 ## Android App
 
 Project path:
@@ -229,3 +238,6 @@ Useful files:
 - Protocol tests: `android/HumeBridge/app/src/test/java/dev/erban/humebridge/protocol/J2208ProtocolTest.kt`
 
 When changing protocol decoding, keep raw bytes and hashes intact so earlier interpretations can be revisited.
+
+
+

@@ -42,6 +42,7 @@ import dev.erban.humebridge.ble.ScannedBand
 import dev.erban.humebridge.data.HrvHistoryEntity
 import dev.erban.humebridge.data.SyncRunEntity
 import dev.erban.humebridge.health.HealthConnectAvailability
+import dev.erban.humebridge.settings.AppMode
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -78,6 +79,7 @@ class MainActivity : ComponentActivity() {
                         onExport = { csvLauncher.launch("band-bp-sync-hrv-bp.csv") },
                         onWriteHealthConnect = viewModel::writeBpToHealthConnect,
                         onSyncAndWriteHealthConnect = viewModel::syncAndWriteBpToHealthConnect,
+                        onModeSelected = viewModel::setAppMode,
                     )
                 }
             }
@@ -109,6 +111,7 @@ private fun BandBpSyncScreen(
     onExport: () -> Unit,
     onWriteHealthConnect: () -> Unit,
     onSyncAndWriteHealthConnect: () -> Unit,
+    onModeSelected: (AppMode) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier
@@ -118,14 +121,9 @@ private fun BandBpSyncScreen(
         contentPadding = PaddingValues(start = 16.dp, top = 20.dp, end = 16.dp, bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        item {
-            Header()
-        }
-
-        item {
-            StatusCard(state)
-        }
-
+        item { Header() }
+        item { StatusCard(state) }
+        item { ModeCard(state = state, onModeSelected = onModeSelected) }
         item {
             BandActions(
                 state = state,
@@ -136,7 +134,6 @@ private fun BandBpSyncScreen(
                 onExport = onExport,
             )
         }
-
         item {
             HealthConnectCard(
                 state = state,
@@ -154,11 +151,9 @@ private fun BandBpSyncScreen(
             }
         }
 
+        item { ProtocolInventoryCard(state) }
         item { SectionTitle("Latest BP Estimate") }
-        item {
-            LatestRecordCard(state.latestRecord)
-        }
-
+        item { LatestRecordCard(state.latestRecord) }
         item { SectionTitle("Recent Valid 0x56 BP Records") }
         items(state.recentRecords) { record ->
             RecordRow(record)
@@ -175,6 +170,67 @@ private fun Header() {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+@Composable
+private fun ModeCard(state: MainUiState, onModeSelected: (AppMode) -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text("App Mode", fontWeight = FontWeight.SemiBold)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ModeButton(
+                    mode = AppMode.COMPANION,
+                    selectedMode = state.appMode,
+                    enabled = !state.busy,
+                    modifier = Modifier.weight(1f),
+                    onModeSelected = onModeSelected,
+                )
+                ModeButton(
+                    mode = AppMode.STANDALONE,
+                    selectedMode = state.appMode,
+                    enabled = !state.busy,
+                    modifier = Modifier.weight(1f),
+                    onModeSelected = onModeSelected,
+                )
+            }
+            Text(
+                state.appMode.shortDescription,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (state.appMode == AppMode.STANDALONE) {
+                Text(
+                    "Standalone mode is groundwork in this build: sync remains manual and only BP writes to Health Connect.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModeButton(
+    mode: AppMode,
+    selectedMode: AppMode,
+    enabled: Boolean,
+    modifier: Modifier,
+    onModeSelected: (AppMode) -> Unit,
+) {
+    if (mode == selectedMode) {
+        Button(modifier = modifier, enabled = enabled, onClick = { onModeSelected(mode) }) {
+            Text(mode.displayName)
+        }
+    } else {
+        OutlinedButton(modifier = modifier, enabled = enabled, onClick = { onModeSelected(mode) }) {
+            Text(mode.displayName)
+        }
     }
 }
 
@@ -304,6 +360,32 @@ private fun HealthConnectCard(
 }
 
 @Composable
+private fun ProtocolInventoryCard(state: MainUiState) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text("Protocol Inventory", fontWeight = FontWeight.SemiBold)
+            Text("Stored 0x56 records: ${state.recordCount}")
+            Text("Valid BP estimates: ${state.eligibleBpCount}")
+            Text("Health Connect BP written: ${state.writtenBpCount}")
+            Text("Decoded diagnostic fields: heart rate, HRV, stress, vascular aging")
+            Text("Health Connect writes enabled now: blood pressure only")
+            if (state.appMode == AppMode.STANDALONE) {
+                Text(
+                    "Standalone expansion candidates: local charts, gap analysis, and opt-in standard metric mappings after validation.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun StatusCard(state: MainUiState) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -311,6 +393,7 @@ private fun StatusCard(state: MainUiState) {
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Status: ${state.status}")
+            Text("Mode: ${state.appMode.displayName}")
             Text("Selected band: ${state.selectedBand?.let { it.name ?: it.address } ?: "none"}")
             Text("Records stored: ${state.recordCount}")
             state.latestSync?.let {

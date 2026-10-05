@@ -14,6 +14,8 @@ import dev.erban.humebridge.data.SyncRunEntity
 import dev.erban.humebridge.health.HealthConnectAvailability
 import dev.erban.humebridge.health.HealthConnectBpBridge
 import dev.erban.humebridge.health.HealthConnectPermissionState
+import dev.erban.humebridge.settings.AppMode
+import dev.erban.humebridge.settings.AppSettingsStore
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -22,6 +24,7 @@ import kotlinx.coroutines.launch
 
 data class MainUiState(
     val selectedBand: BandDeviceEntity? = null,
+    val appMode: AppMode = AppMode.COMPANION,
     val latestRecord: HrvHistoryEntity? = null,
     val recentRecords: List<HrvHistoryEntity> = emptyList(),
     val recordCount: Int = 0,
@@ -56,6 +59,8 @@ private data class DbUiState(
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
+    private val settingsStore = AppSettingsStore(application)
+
     private val repository = SyncRepository(
         database = HumeBridgeDatabase.get(application),
         scanner = BandScanner(application),
@@ -88,10 +93,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         DbUiState(selectedBand, count, latestSync, records, counts)
     }
 
-    val uiState: StateFlow<MainUiState> = combine(dbUiState, mutableState) { db, local ->
+    val uiState: StateFlow<MainUiState> = combine(
+        dbUiState,
+        settingsStore.appMode,
+        mutableState,
+    ) { db, appMode, local ->
         val validBpRecords = db.records.filter { it.bpSystolic > 0 && it.bpDiastolic > 0 }
         local.copy(
             selectedBand = db.selectedBand,
+            appMode = appMode,
             latestRecord = validBpRecords.firstOrNull(),
             recentRecords = validBpRecords.take(30),
             recordCount = db.recordCount,
@@ -107,6 +117,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         repository.hasScanPermission() && repository.hasConnectPermission()
 
     val healthPermissions: Set<String> get() = repository.healthPermissions
+
+    fun setAppMode(mode: AppMode) {
+        settingsStore.setAppMode(mode)
+        mutableState.value = mutableState.value.copy(
+            status = "${mode.displayName} mode selected",
+            error = null,
+        )
+    }
 
     fun refreshHealthConnect() {
         viewModelScope.launch {
