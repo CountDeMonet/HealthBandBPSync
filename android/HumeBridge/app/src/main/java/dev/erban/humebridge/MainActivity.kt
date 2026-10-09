@@ -80,6 +80,7 @@ class MainActivity : ComponentActivity() {
                         onWriteHealthConnect = viewModel::writeBpToHealthConnect,
                         onSyncAndWriteHealthConnect = viewModel::syncAndWriteBpToHealthConnect,
                         onModeSelected = viewModel::setAppMode,
+                        onBackgroundSyncEnabledChanged = viewModel::setBackgroundSyncEnabled,
                     )
                 }
             }
@@ -112,6 +113,7 @@ private fun BandBpSyncScreen(
     onWriteHealthConnect: () -> Unit,
     onSyncAndWriteHealthConnect: () -> Unit,
     onModeSelected: (AppMode) -> Unit,
+    onBackgroundSyncEnabledChanged: (Boolean) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier
@@ -124,6 +126,13 @@ private fun BandBpSyncScreen(
         item { Header() }
         item { StatusCard(state) }
         item { ModeCard(state = state, onModeSelected = onModeSelected) }
+        item {
+            BackgroundSyncCard(
+                state = state,
+                hasBlePermissions = hasPermissions,
+                onBackgroundSyncEnabledChanged = onBackgroundSyncEnabledChanged,
+            )
+        }
         item {
             BandActions(
                 state = state,
@@ -234,6 +243,69 @@ private fun ModeButton(
     }
 }
 
+@Composable
+private fun BackgroundSyncCard(
+    state: MainUiState,
+    hasBlePermissions: Boolean,
+    onBackgroundSyncEnabledChanged: (Boolean) -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("Background Sync", fontWeight = FontWeight.SemiBold)
+            Text(
+                if (state.backgroundSync.enabled) "Enabled" else "Disabled",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                "When enabled, the app schedules a sync attempt at a random time every 2-4 hours.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                "It uses the selected band, then writes pending BP only if Health Connect permission is already granted.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            state.backgroundSync.nextRunEpochMillis?.let {
+                Text("Next scheduled attempt: ${timeText(it)}", style = MaterialTheme.typography.bodySmall)
+            }
+            state.backgroundSync.lastAttemptEpochMillis?.let {
+                Text("Last attempt: ${timeText(it)}", style = MaterialTheme.typography.bodySmall)
+            }
+            state.backgroundSync.lastStatus?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall)
+            }
+            if (!hasBlePermissions) {
+                Text(
+                    "Grant BLE permissions before enabling background sync.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    modifier = Modifier.weight(1f),
+                    enabled = !state.busy && hasBlePermissions && !state.backgroundSync.enabled,
+                    onClick = { onBackgroundSyncEnabledChanged(true) },
+                ) {
+                    Text("Enable")
+                }
+                OutlinedButton(
+                    modifier = Modifier.weight(1f),
+                    enabled = !state.busy && state.backgroundSync.enabled,
+                    onClick = { onBackgroundSyncEnabledChanged(false) },
+                ) {
+                    Text("Disable")
+                }
+            }
+        }
+    }
+}
 @Composable
 private fun BandActions(
     state: MainUiState,
@@ -494,4 +566,6 @@ private fun healthConnectStatusText(state: MainUiState): String =
         HealthConnectAvailability.UpdateRequired -> "provider update required"
         HealthConnectAvailability.Unavailable -> "unavailable"
     }
+
+
 

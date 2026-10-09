@@ -20,10 +20,10 @@ Working in the current build:
 - Avoid duplicate Health Connect writes using deterministic client record IDs.
 - Keep sync manual and close the BLE connection after each sync.
 - Persist an app mode setting for Companion vs Standalone workflows.
+- Optionally schedule background 0x56 sync attempts at random 2-4 hour intervals.
 
 Not implemented by design:
 
-- Background sync / WorkManager.
 - Health Connect writes for heart rate, HRV, stress, vascular aging, sleep, or other metrics.
 - Live `0x28` measurement handling.
 - Reproduction of any vendor app's hourly aggregation or chart display logic.
@@ -132,6 +132,19 @@ The `.gitignore` is set up for these categories, but if a sensitive or generated
 git rm --cached path/to/file
 ```
 
+## Background Sync
+
+Background sync is opt-in. When enabled, Band BP Sync schedules a one-time WorkManager job with a random delay between 2 and 4 hours. After each attempt, the worker records status and schedules the next randomized attempt if the setting is still enabled.
+
+The background worker is intentionally conservative:
+
+- It uses the already selected band address and does not scan.
+- It runs the same stored `0x56` history sync path as the manual flow.
+- It writes pending BP records to Health Connect only when BP permission is already granted.
+- It records failures locally and reschedules rather than deleting raw data.
+- It does not enable live measurements or additional Health Connect metrics.
+
+Android may still defer work based on battery, Bluetooth state, permissions, and system background limits, so this is a reliability aid rather than an exact timer.
 ## App Modes
 
 Band BP Sync now has a persisted mode setting that establishes two future operating styles without changing sync behavior yet:
@@ -238,6 +251,9 @@ Useful files:
 - Protocol tests: `android/HumeBridge/app/src/test/java/dev/erban/humebridge/protocol/J2208ProtocolTest.kt`
 
 When changing protocol decoding, keep raw bytes and hashes intact so earlier interpretations can be revisited.
+
+
+
 
 
 

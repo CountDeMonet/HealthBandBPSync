@@ -4,6 +4,7 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import dev.erban.humebridge.background.BackgroundSyncScheduler
 import dev.erban.humebridge.ble.BandScanner
 import dev.erban.humebridge.ble.J2208GattClient
 import dev.erban.humebridge.ble.ScannedBand
@@ -15,7 +16,9 @@ import dev.erban.humebridge.health.HealthConnectAvailability
 import dev.erban.humebridge.health.HealthConnectBpBridge
 import dev.erban.humebridge.health.HealthConnectPermissionState
 import dev.erban.humebridge.settings.AppMode
+import dev.erban.humebridge.settings.AppSettingsState
 import dev.erban.humebridge.settings.AppSettingsStore
+import dev.erban.humebridge.settings.BackgroundSyncSettings
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -25,6 +28,7 @@ import kotlinx.coroutines.launch
 data class MainUiState(
     val selectedBand: BandDeviceEntity? = null,
     val appMode: AppMode = AppMode.COMPANION,
+    val backgroundSync: BackgroundSyncSettings = BackgroundSyncSettings(),
     val latestRecord: HrvHistoryEntity? = null,
     val recentRecords: List<HrvHistoryEntity> = emptyList(),
     val recordCount: Int = 0,
@@ -95,13 +99,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val uiState: StateFlow<MainUiState> = combine(
         dbUiState,
-        settingsStore.appMode,
+        settingsStore.settings,
         mutableState,
-    ) { db, appMode, local ->
+    ) { db, settings, local ->
         val validBpRecords = db.records.filter { it.bpSystolic > 0 && it.bpDiastolic > 0 }
         local.copy(
             selectedBand = db.selectedBand,
-            appMode = appMode,
+            appMode = settings.appMode,
+            backgroundSync = settings.backgroundSync,
             latestRecord = validBpRecords.firstOrNull(),
             recentRecords = validBpRecords.take(30),
             recordCount = db.recordCount,
@@ -122,6 +127,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         settingsStore.setAppMode(mode)
         mutableState.value = mutableState.value.copy(
             status = "${mode.displayName} mode selected",
+            error = null,
+        )
+    }
+
+    fun setBackgroundSyncEnabled(enabled: Boolean) {
+        BackgroundSyncScheduler.setEnabled(getApplication(), enabled)
+        settingsStore.refresh()
+        mutableState.value = mutableState.value.copy(
+            status = if (enabled) "Background sync enabled" else "Background sync disabled",
             error = null,
         )
     }
@@ -267,4 +281,5 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 }
+
 
